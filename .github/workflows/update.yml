@@ -1,0 +1,52 @@
+name: Update Premier League dashboard
+
+on:
+  workflow_dispatch:
+  schedule:
+    # GitHub schedules use UTC. Hourly is simple, reliable, and keeps match-day
+    # scores current without excessive requests.
+    - cron: "17 * * * *"
+
+permissions:
+  contents: write
+
+concurrency:
+  group: premier-league-dashboard-${{ github.ref }}
+  cancel-in-progress: false
+
+jobs:
+  update:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: "3.12"
+          cache: pip
+
+      - name: Install dependencies
+        run: python -m pip install --requirement requirements.txt
+
+      - name: Generate and validate dashboard
+        run: python generate_pl_bmp.py --validate
+
+      - name: Commit changed dashboard
+        shell: bash
+        run: |
+          git add PremierLeague.bmp
+          if git diff --cached --quiet; then
+            echo "PremierLeague.bmp is unchanged."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "Update Premier League dashboard [skip ci]"
+          git pull --rebase origin "${GITHUB_REF_NAME}"
+          git push origin "HEAD:${GITHUB_REF_NAME}"
