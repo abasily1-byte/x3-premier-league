@@ -3,9 +3,9 @@ name: Update Premier League dashboard
 on:
   workflow_dispatch:
   schedule:
-    # GitHub schedules use UTC. Hourly is simple, reliable, and keeps match-day
-    # scores current without excessive requests.
-    - cron: "17 * * * *"
+    # GitHub may delay or drop scheduled events under load. Two staggered,
+    # off-peak triggers keep the dashboard fresh if an individual event drops.
+    - cron: "7,37 * * * *"
 
 permissions:
   contents: write
